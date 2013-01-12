@@ -3,7 +3,7 @@ Created on Jan 10, 2013
 
 @author: bchang
 '''
-from xmlutil import getChildrenByTagName, nextElement
+import xmlutil
 from xml.dom import minidom
 from dateutil.parser import parse
 
@@ -14,57 +14,61 @@ KEY_PLAY_COUNT = 'Play Count'
 KEY_TOTAL_TIME = 'Total Time'
 KEY_TRACK_ID = 'Track ID'
 
-def __findKeyWithKeyName__(parent, keyName):
-    for key in getChildrenByTagName(parent, 'key'):
-        if key.firstChild.data == keyName:
-            return key
-    return None
+def __handleDictElement__(dictElement):
+    d = dict()
+    for keyElement in xmlutil.getChildrenByTagName(dictElement, 'key'):
+        key = keyElement.firstChild.data
+        valueElement = xmlutil.nextSiblingElement(keyElement)
+        d[key] = __handleValueElement__(valueElement)
+    return d
 
-class ItunesTrack:
-    def __init__(self, trackId, trackDict):
-        self.trackId = trackId
-        self.itunesData = dict()
-        for key in getChildrenByTagName(trackDict, 'key'):
-            keyName = key.firstChild.data
-            valueType = nextElement(key).tagName
-            if valueType == 'true' or valueType == 'false':
-                value = bool(valueType)
-            else:
-                data = nextElement(key).firstChild.data
-                if valueType == 'string':
-                    value = data
-                elif valueType == 'integer':
-                    value = int(data)
-                elif valueType == 'date':
-                    value = parse(data)
-                else:
-                    raise Exception('unrecognized value type:', valueType)
-            self.itunesData[keyName] = value
+def __handleArrayElement__(arrayElement):
+    a = []
+    child = xmlutil.firstChildElement(arrayElement)
+    while child is not None:
+        a.append(__handleValueElement__(child))
+        child = xmlutil.nextSiblingElement(child)
+    return a
+
+def __handleValueElement__(valueElement):
+    valueType = valueElement.tagName
+    if valueType == 'true' or valueType == 'false':
+        return bool(valueType)
+    elif valueType == 'dict':
+        return __handleDictElement__(valueElement)
+    elif valueType == 'array':
+        return __handleArrayElement__(valueElement)
+    else:
+        data = valueElement.firstChild.data
+        if valueType == 'string':
+            return data
+        elif valueType == 'data':
+            return data.strip()
+        elif valueType == 'integer':
+            return int(data)
+        elif valueType == 'date':
+            return parse(data)
+        else:
+            raise Exception('unrecognized value type:', valueType)
+
 
 def parseItunesXml(xmlFile):
     xmldoc = minidom.parse(xmlFile)
-    rootDict = getChildrenByTagName(xmldoc.documentElement, 'dict').next()
-    
-    tracksKey = __findKeyWithKeyName__(rootDict, 'Tracks')
-    tracksDict = nextElement(tracksKey)
+    assert xmldoc.documentElement.tagName == 'plist'
+    rootDictElement = xmlutil.getChildrenByTagName(xmldoc.documentElement, 'dict').next()
 
-    tracks = []
+    rootDict = __handleDictElement__(rootDictElement)
 
-    for trackKey in getChildrenByTagName(tracksDict, 'key'):
-        trackId = trackKey.firstChild.data
-        print trackId
-        trackDict = nextElement(trackKey)
-        track = ItunesTrack(trackId, trackDict)
-        tracks.append(track)
+    tracksDict = rootDict['Tracks']
 
-    return tracks
+    return tracksDict
 
 def importItunesXml(xmlFile, itunesCollection):
-    tracks = parseItunesXml(xmlFile)
-    print 'done parsing ' + xmlFile + ' (' + str(len(tracks)) + ')'
+    tracksDict = parseItunesXml(xmlFile)
+    print 'done parsing ' + xmlFile + ' (' + str(len(tracksDict)) + ')'
 
     itunesCollection.remove()
-    for track in tracks:
-        itunesCollection.insert(track.itunesData)
+    for track in tracksDict.itervalues():
+        itunesCollection.insert(track)
 
     print 'done loading parsed tracks into db'

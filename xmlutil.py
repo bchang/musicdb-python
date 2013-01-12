@@ -15,9 +15,15 @@ def getChildrenByTagName(parent, name):
         if node.tagName == name:
             yield node
 
-def nextElement(node):
-    while True:
+def firstChildElement(node):
+    node = node.firstChild
+    return __ensureElement__(node)
+
+def nextSiblingElement(node):
+    node = node.nextSibling
+    return __ensureElement__(node)
+
+def __ensureElement__(node):
+    while node is not None and node.nodeType != Node.ELEMENT_NODE:
         node = node.nextSibling
-        if node is None or node.nodeType == Node.ELEMENT_NODE:
-            break
     return node
