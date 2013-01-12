@@ -9,7 +9,7 @@ connection = MongoClient('localhost', 27017)
 db = connection.musicdb
 itunesCollection = db.itunes_collection
 
-LABEL_ROW_TEMPLATE = "{:<30}: {:3d}:{:02d}:{:02d}"
+LABEL_ROW_TEMPLATE = u'{:<30}: {:3d}:{:02d}:{:02d}'
 
 def importItunes():
     xmlFile = '/Users/bchang/Music/iTunes/iTunes Music Library.xml'
@@ -64,9 +64,8 @@ def albumsMostPlayed():
         hhmmss = timeutil.millisToHHMMSS(item[1])
         print LABEL_ROW_TEMPLATE.format(item[0], hhmmss[0], hhmmss[1], hhmmss[2])
 
-#importItunes()
-#printAllTracks()
-#artistsMostPlayed()
+importItunes()
+printAllTracks()
+artistsMostPlayed()
 albumsMostPlayed()
 totalPlayTime()
-
