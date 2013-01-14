@@ -1,19 +1,20 @@
+import gmusic
 import itunes
+import musicdbconf
 import operator
 import timeutil
 from pymongo import MongoClient
 
 __author__ = 'bchang'
 
-connection = MongoClient('localhost', 27017)
+connection = MongoClient(musicdbconf.MONGOLAB_HOST, musicdbconf.MONGOLAB_PORT)
 db = connection.musicdb
+db.authenticate(musicdbconf.DB_USER, musicdbconf.DB_PASSWORD)
 itunesCollection = db.itunes_collection
+gmusicCollection = db.gmusic_collection
+keysCollection = db.keys_collection
 
 LABEL_ROW_TEMPLATE = u'{:<30}: {:3d}:{:02d}:{:02d}'
-
-def importItunes():
-    xmlFile = '/Users/bchang/Music/iTunes/iTunes Music Library.xml'
-    itunes.importItunesXml(xmlFile, itunesCollection)
 
 def printAllTracks():
     for itunesTrackData in itunesCollection.find():
@@ -64,8 +65,10 @@ def albumsMostPlayed():
         hhmmss = timeutil.millisToHHMMSS(item[1])
         print LABEL_ROW_TEMPLATE.format(item[0], hhmmss[0], hhmmss[1], hhmmss[2])
 
-importItunes()
+itunes.importItunesXml(musicdbconf.ITUNES_XML, itunesCollection, keysCollection)
 printAllTracks()
 artistsMostPlayed()
 albumsMostPlayed()
 totalPlayTime()
+
+gmusic.importGmusicApi(musicdbconf.GMUSIC_USER, musicdbconf.GMUSIC_PASSWORD, gmusicCollection, keysCollection)
