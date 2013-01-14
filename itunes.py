@@ -52,10 +52,11 @@ def __handleValueElement__(valueElement):
             raise Exception('unrecognized value type:', valueType)
 
 
-def parseItunesXml(xmlFile):
+def __parseItunesXml__(xmlFile):
     xmldoc = minidom.parse(xmlFile)
     assert xmldoc.documentElement.tagName == 'plist'
     rootDictElement = xmlutil.getChildrenByTagName(xmldoc.documentElement, 'dict').next()
+    assert xmlutil.nextSiblingElement(rootDictElement) == None
 
     rootDict = __handleDictElement__(rootDictElement)
 
@@ -63,12 +64,16 @@ def parseItunesXml(xmlFile):
 
     return tracksDict
 
-def importItunesXml(xmlFile, itunesCollection):
-    tracksDict = parseItunesXml(xmlFile)
+def importItunesXml(xmlFile, itunesCollection, keysCollection):
+    tracksDict = __parseItunesXml__(xmlFile)
     print 'done parsing ' + xmlFile + ' (' + str(len(tracksDict)) + ')'
 
     itunesCollection.remove()
+    keys = set()
     for track in tracksDict.itervalues():
         itunesCollection.insert(track)
+        for key in track.iterkeys():
+            keys.add(key)
 
+    keysCollection.save({'_id' : 'itunes', 'keys' : list(keys)})
     print 'done loading parsed tracks into db'
