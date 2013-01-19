@@ -19,6 +19,10 @@ def connectMongoDb():
         db.authenticate(musicdbconf.musicDbCred[0], musicdbconf.musicDbCred[1])
     return db
 
+def importItunesAndGmusic():
+    itunes.importItunesXml(musicdbconf.ITUNES_XML, itunesCollection, keysCollection)
+    gmusic.importGmusicApi(musicdbconf.GMUSIC_USER, musicdbconf.GMUSIC_PASSWORD, gmusicCollection, keysCollection)
+
 def printAllTracks():
     for itunesTrackData in itunesCollection.find():
         if itunes.KEY_ARTIST in itunesTrackData:
@@ -74,10 +78,11 @@ gmusicCollection = db.gmusic_collection
 keysCollection = db.keys_collection
 
 if musicdbconf.doImport:
-    itunes.importItunesXml(musicdbconf.ITUNES_XML, itunesCollection, keysCollection)
-    gmusic.importGmusicApi(musicdbconf.GMUSIC_USER, musicdbconf.GMUSIC_PASSWORD, gmusicCollection, keysCollection)
+    importItunesAndGmusic()
 
+'''
 printAllTracks()
 artistsMostPlayed()
 albumsMostPlayed()
 totalPlayTime()
+'''
