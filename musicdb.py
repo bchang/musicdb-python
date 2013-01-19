@@ -7,14 +7,17 @@ from pymongo import MongoClient
 
 __author__ = 'bchang'
 
-connection = MongoClient(musicdbconf.MONGOLAB_HOST, musicdbconf.MONGOLAB_PORT)
-db = connection.musicdb
-db.authenticate(musicdbconf.DB_USER, musicdbconf.DB_PASSWORD)
-itunesCollection = db.itunes_collection
-gmusicCollection = db.gmusic_collection
-keysCollection = db.keys_collection
-
 LABEL_ROW_TEMPLATE = u'{:<30}: {:3d}:{:02d}:{:02d}'
+
+def connectMongoDb():
+    if  musicdbconf.mongoCred is None:
+        connection = MongoClient()
+    else:
+        connection = MongoClient(musicdbconf.mongoCred[0], musicdbconf.mongoCred[1])
+    db = connection.musicdb
+    if musicdbconf.musicDbCred is not None:
+        db.authenticate(musicdbconf.musicDbCred[0], musicdbconf.musicDbCred[1])
+    return db
 
 def printAllTracks():
     for itunesTrackData in itunesCollection.find():
@@ -65,10 +68,16 @@ def albumsMostPlayed():
         hhmmss = timeutil.millisToHHMMSS(item[1])
         print LABEL_ROW_TEMPLATE.format(item[0], hhmmss[0], hhmmss[1], hhmmss[2])
 
-itunes.importItunesXml(musicdbconf.ITUNES_XML, itunesCollection, keysCollection)
+db = connectMongoDb()
+itunesCollection = db.itunes_collection
+gmusicCollection = db.gmusic_collection
+keysCollection = db.keys_collection
+
+if musicdbconf.doImport:
+    itunes.importItunesXml(musicdbconf.ITUNES_XML, itunesCollection, keysCollection)
+    gmusic.importGmusicApi(musicdbconf.GMUSIC_USER, musicdbconf.GMUSIC_PASSWORD, gmusicCollection, keysCollection)
+
 printAllTracks()
 artistsMostPlayed()
 albumsMostPlayed()
 totalPlayTime()
-
-gmusic.importGmusicApi(musicdbconf.GMUSIC_USER, musicdbconf.GMUSIC_PASSWORD, gmusicCollection, keysCollection)
